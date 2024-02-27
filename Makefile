@@ -7,4 +7,7 @@ copy:
 serve:
 	goexec 'http.ListenAndServe(":8080", http.FileServer(http.Dir(".")))'
 
-.PHONY: compile copy serve
+preview:
+	GOOS=js GOARCH=wasm go build -o meatball.wasm && goexec 'http.ListenAndServe(":8080", http.FileServer(http.Dir(".")))'
+
+.PHONY: compile copy serve preview
