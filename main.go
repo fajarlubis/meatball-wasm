@@ -1,16 +1,24 @@
 package main
 
 import (
+	"log"
 	"syscall/js"
 
 	"github.com/fajarlubis/meatball-wasm/pdf"
 )
 
 func main() {
-	w := pdf.Generate()
+	p := pdf.NewInvoice(pdf.DefaultA4, pdf.Config{
+		Orientation: pdf.Landscape,
+	}, map[string]interface{}{})
 
-	jsPDFContent := js.Global().Get("Uint8Array").New(len(w.Bytes()))
-	js.CopyBytesToJS(jsPDFContent, w.Bytes())
+	invoice, err := p.Generate()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jsPDFContent := js.Global().Get("Uint8Array").New(len(invoice.Bytes()))
+	js.CopyBytesToJS(jsPDFContent, invoice.Bytes())
 
 	js.Global().Call("displayPDF", jsPDFContent, "output.pdf")
 }

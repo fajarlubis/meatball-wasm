@@ -4,19 +4,44 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
 )
 
-func Generate() *bytes.Buffer {
-	pdf := gofpdf.New("P", "mm", "A4", "")
+type PDF interface {
+	// Generate() will return *bytes.Buffer from generated PDFs
+	Generate() (*bytes.Buffer, error)
+}
+
+type pdf struct {
+	Template Template
+	Data     []map[string]interface{}
+}
+
+// Config provide configuration for current PDF
+type Config struct {
+	Metadata    map[string]string
+	Orientation Orientation
+	PageNumber  bool
+	ForceOrder  bool
+}
+
+// New invoice
+func NewInvoice(template Template, config Config, data ...map[string]interface{}) PDF {
+	return &pdf{
+		Template: template,
+		Data:     data,
+	}
+}
+
+func (p *pdf) Generate() (*bytes.Buffer, error) {
+	pdf := gofpdf.New("P", DefaultUnit, "A4", "")
 
 	var wg sync.WaitGroup
 
-	numOfPages := 10
+	numOfPages := len(p.Data)
 	var defaultCellHeight float64 = 6
 	startTime := time.Now()
 
@@ -147,12 +172,11 @@ func Generate() *bytes.Buffer {
 	writer := io.MultiWriter(&buffer)
 
 	if err := pdf.Output(writer); err != nil {
-		log.Println(err)
-		return nil
+		return nil, err
 	}
 
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Time to render %v PDF pages: %s\n", numOfPages, elapsedTime)
 
-	return &buffer
+	return &buffer, nil
 }
