@@ -16,7 +16,7 @@ func Generate() *bytes.Buffer {
 
 	var wg sync.WaitGroup
 
-	numOfPages := 1000
+	numOfPages := 10
 	var defaultCellHeight float64 = 6
 	startTime := time.Now()
 
