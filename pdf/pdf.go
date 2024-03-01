@@ -4,18 +4,21 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	_ "net/http/pprof"
 	"sync"
-	"time"
 
 	"github.com/jung-kurt/gofpdf"
 )
 
-type PDF interface {
+type Invoice interface {
 	// Generate() will return *bytes.Buffer from generated PDFs
 	Generate() (*bytes.Buffer, error)
 }
 
 type pdf struct {
+	Config
+	sync.Mutex
+
 	Template Template
 	Data     []map[string]interface{}
 }
@@ -29,27 +32,30 @@ type Config struct {
 }
 
 // New invoice
-func NewInvoice(template Template, config Config, data ...map[string]interface{}) PDF {
+func NewInvoice(template Template, config Config, data ...map[string]interface{}) Invoice {
 	return &pdf{
 		Template: template,
 		Data:     data,
+		Config:   config,
 	}
 }
 
 func (p *pdf) Generate() (*bytes.Buffer, error) {
-	pdf := gofpdf.New("P", DefaultUnit, "A4", "")
-
 	var wg sync.WaitGroup
 
-	numOfPages := len(p.Data)
-	var defaultCellHeight float64 = 6
-	startTime := time.Now()
+	pdf := gofpdf.New("P", DefaultUnit, "A4", "")
 
-	for i := 0; i < numOfPages; i++ {
+	var defaultCellHeight float64 = 6
+
+	for i := 0; i < len(p.Data); i++ {
 		wg.Add(1)
 
 		go func(idx int) {
+			p.Lock()
+			defer p.Unlock()
 			defer wg.Done()
+
+			data := p.Data[idx]
 
 			pdf.AddPage()
 			pdf.SetFont("Arial", "B", 25)
@@ -63,7 +69,7 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 			pdf.SetX(57)
 			pdf.SetFont("Arial", "", 11)
 			pdf.SetTextColor(70, 70, 70)
-			pdf.Cell(40, defaultCellHeight, "998US82103NN811")
+			pdf.Cell(40, defaultCellHeight, data["invoice_number"].(string))
 
 			pdf.Ln(-1)
 
@@ -73,7 +79,7 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 			pdf.SetX(57)
 			pdf.SetFont("Arial", "", 11)
 			pdf.SetTextColor(70, 70, 70)
-			pdf.Cell(40, defaultCellHeight, "Feb 28, 2024")
+			pdf.Cell(40, defaultCellHeight, data["issue_date"].(string))
 
 			pdf.Ln(-1)
 
@@ -83,7 +89,7 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 			pdf.SetX(57)
 			pdf.SetFont("Arial", "", 11)
 			pdf.SetTextColor(70, 70, 70)
-			pdf.Cell(40, defaultCellHeight, "0 days")
+			pdf.Cell(40, defaultCellHeight, data["payment_term"].(string))
 
 			pdf.Ln(15)
 
@@ -158,8 +164,10 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 				pdf.SetY(-15)
 				pdf.SetFont("Arial", "", 8)
 				pdf.SetTextColor(70, 70, 70)
-				pdf.CellFormat(0, 10, fmt.Sprintf("Page %d of %d", pdf.PageNo(), numOfPages),
-					"", 0, "L", false, 0, "")
+				if p.PageNumber {
+					pdf.CellFormat(0, 10, fmt.Sprintf("Page %d of %d", pdf.PageNo(), 1),
+						"", 0, "L", false, 0, "")
+				}
 				pdf.CellFormat(0, 10, "Powered by Meatball Realtime Subscription Engine",
 					"", 0, "R", false, 0, "")
 			})
@@ -174,9 +182,6 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 	if err := pdf.Output(writer); err != nil {
 		return nil, err
 	}
-
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Time to render %v PDF pages: %s\n", numOfPages, elapsedTime)
 
 	return &buffer, nil
 }
