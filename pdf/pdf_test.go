@@ -13,6 +13,7 @@ import (
 )
 
 func TestGenerateInvoice(t *testing.T) {
+	// Start profiling
 	go func() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
@@ -37,6 +38,7 @@ func TestGenerateInvoice(t *testing.T) {
 	if err := pprof.WriteHeapProfile(memProfile); err != nil {
 		t.Fatal(err)
 	}
+	// End profiling
 
 	startTime := time.Now()
 	numOfPages := 1000
@@ -71,7 +73,7 @@ func TestGenerateInvoice(t *testing.T) {
 
 	t.Logf("Time to render %v PDF pages: %s\n", numOfPages, time.Since(startTime))
 
-	file, err := os.Create("output_test.pdf")
+	file, err := os.Create("pdf_test.pdf")
 	assert.NoError(t, err)
 
 	defer file.Close()

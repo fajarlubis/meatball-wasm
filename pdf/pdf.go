@@ -25,7 +25,6 @@ type pdf struct {
 
 // Config provide configuration for current PDF
 type Config struct {
-	Metadata    map[string]string
 	Orientation Orientation
 	PageNumber  bool
 	ForceOrder  bool
@@ -43,9 +42,12 @@ func NewInvoice(template Template, config Config, data ...map[string]interface{}
 func (p *pdf) Generate() (*bytes.Buffer, error) {
 	var wg sync.WaitGroup
 
-	pdf := gofpdf.New("P", DefaultUnit, "A4", "")
+	pdf := gofpdf.New(string(p.Orientation), DefaultUnit, "A4", "")
 
-	var defaultCellHeight float64 = 6
+	var (
+		defaultCellHeight float64 = 6
+		defaultCellWidth  float64 = 35
+	)
 
 	for i := 0; i < len(p.Data); i++ {
 		wg.Add(1)
@@ -59,7 +61,7 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 
 			pdf.AddPage()
 			pdf.SetFont("Arial", "B", 25)
-			pdf.Cell(40, 15, "Invoice")
+			pdf.Cell(defaultCellWidth, 15, "Invoice")
 
 			pdf.Ln(25)
 
@@ -162,14 +164,20 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 
 			pdf.SetFooterFunc(func() {
 				pdf.SetY(-15)
-				pdf.SetFont("Arial", "", 8)
+				pdf.SetFont("Arial", "", 7)
 				pdf.SetTextColor(70, 70, 70)
 				if p.PageNumber {
 					pdf.CellFormat(0, 10, fmt.Sprintf("Page %d of %d", pdf.PageNo(), 1),
 						"", 0, "L", false, 0, "")
 				}
-				pdf.CellFormat(0, 10, "Powered by Meatball Realtime Subscription Engine",
-					"", 0, "R", false, 0, "")
+
+				footX, footY := pdf.GetXY()
+
+				imageOptions := gofpdf.ImageOptions{
+					ReadDpi: true,
+				}
+
+				pdf.ImageOptions("../badge-inverse.png", footX-20, footY, 20, 0, false, imageOptions, 0, "https://meatball.fajarlubis.me")
 			})
 		}(i)
 	}
