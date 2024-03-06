@@ -171,13 +171,13 @@ func (p *pdf) Generate() (*bytes.Buffer, error) {
 						"", 0, "L", false, 0, "")
 				}
 
-				footX, footY := pdf.GetXY()
+				// footX, footY := pdf.GetXY()
 
-				imageOptions := gofpdf.ImageOptions{
-					ReadDpi: true,
-				}
+				// imageOptions := gofpdf.ImageOptions{
+				// 	ReadDpi: true,
+				// }
 
-				pdf.ImageOptions("../badge-inverse.png", footX-20, footY, 20, 0, false, imageOptions, 0, "https://meatball.fajarlubis.me")
+				// pdf.ImageOptions("../badge-inverse.png", footX-20, footY, 20, 0, false, imageOptions, 0, "https://meatball.fajarlubis.me")
 			})
 		}(i)
 	}
