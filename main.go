@@ -42,4 +42,6 @@ func main() {
 
 	div := js.Global().Get("document").Call("getElementById", "msg")
 	div.Set("textContent", fmt.Sprintf("Time to render %v PDF pages: %s\n", numOfPages, time.Since(startTime)))
+
+	select {}
 }
